@@ -5,6 +5,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.my.code.rule_engine.RuleEngineApplication;
 import com.my.code.rule_engine.knowledgeBase.dto.Rule;
 import com.my.code.rule_engine.knowledgeBase.service.KnowledgeBaseService;
+import com.my.code.rule_engine.ruleEngine.discountRuleEngine.DiscountInfo;
 import com.my.code.rule_engine.ruleEngine.discountRuleEngine.UserInfo;
 import com.my.code.rule_engine.ruleEngine.discountRuleEngine.UserType;
 import org.assertj.core.util.Lists;
@@ -24,6 +25,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,9 +54,7 @@ public class DiscountRuleEngineTest {
 
     @Test
     public void verifyEmployeeBasedDiscountRule() throws Exception {
-        //UserInfo userInfo = new UserInfo("Saman", UserType.EMPLOYEE, LocalDate.now(), false);
-        //UserInfo userInfo = new UserInfo("Saman", UserType.AFFILIATE, LocalDate.now(), false);
-        UserInfo userInfo = new UserInfo("Saman", UserType.EMPLOYEE, LocalDate.of(1990, 5, 14), false, new BigDecimal(1000));
+        UserInfo userInfo = new UserInfo("Saman", UserType.EMPLOYEE, LocalDate.now(), false, new BigDecimal(1000));
 
         MvcResult mvcResult = mockMvc.perform(post("/discounts")
                         .contentType("application/json")
@@ -63,7 +63,74 @@ public class DiscountRuleEngineTest {
                 .andReturn();
 
         String actualResponseBody = mvcResult.getResponse().getContentAsString();
-        System.out.println("Response: " + actualResponseBody);
+
+        DiscountInfo discountInfo = new DiscountInfo();
+        discountInfo.setEmpDiscountRate(new BigDecimal(30));
+        discountInfo.setNetBillAmount(new BigDecimal("650.00"));
+        discountInfo.setFiveDollarApplicable(true);
+
+        String expectedResponseBody = objectMapper.writeValueAsString(discountInfo);
+        assertThat(expectedResponseBody).isEqualToIgnoringWhitespace(actualResponseBody);
+    }
+
+    @Test
+    public void verifyAffiliateBasedDiscountRule() throws Exception {
+        UserInfo userInfo = new UserInfo("Saman", UserType.AFFILIATE, LocalDate.now(), false, new BigDecimal(1000));
+
+        MvcResult mvcResult = mockMvc.perform(post("/discounts")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(userInfo)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String actualResponseBody = mvcResult.getResponse().getContentAsString();
+
+        DiscountInfo discountInfo = new DiscountInfo();
+        discountInfo.setAffiliateDiscountRate(new BigDecimal(10));
+        discountInfo.setNetBillAmount(new BigDecimal("850.00"));
+        discountInfo.setFiveDollarApplicable(true);
+
+        String expectedResponseBody = objectMapper.writeValueAsString(discountInfo);
+        assertThat(expectedResponseBody).isEqualToIgnoringWhitespace(actualResponseBody);
+    }
+
+    @Test
+    public void verifyRegistrationBasedDiscountRule() throws Exception {
+        UserInfo userInfo = new UserInfo("Saman", UserType.CUSTOMER, LocalDate.of(1990, 5, 14), false, new BigDecimal(1000));
+        MvcResult mvcResult = mockMvc.perform(post("/discounts")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(userInfo)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String actualResponseBody = mvcResult.getResponse().getContentAsString();
+
+        DiscountInfo discountInfo = new DiscountInfo();
+        discountInfo.setRegistrationDiscountRage(new BigDecimal(5));
+        discountInfo.setNetBillAmount(new BigDecimal("900.00"));
+        discountInfo.setFiveDollarApplicable(true);
+
+        String expectedResponseBody = objectMapper.writeValueAsString(discountInfo);
+        assertThat(expectedResponseBody).isEqualToIgnoringWhitespace(actualResponseBody);
+    }
+
+    @Test
+    public void verifyFiveDollarBasedDiscountRule() throws Exception {
+        UserInfo userInfo = new UserInfo("Saman", UserType.CUSTOMER, LocalDate.now(), true, new BigDecimal(990));
+        MvcResult mvcResult = mockMvc.perform(post("/discounts")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(userInfo)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String actualResponseBody = mvcResult.getResponse().getContentAsString();
+
+        DiscountInfo discountInfo = new DiscountInfo();
+        discountInfo.setFiveDollarApplicable(true);
+        discountInfo.setNetBillAmount(new BigDecimal("945.00"));
+
+        String expectedResponseBody = objectMapper.writeValueAsString(discountInfo);
+        assertThat(expectedResponseBody).isEqualToIgnoringWhitespace(actualResponseBody);
     }
 
     private List<Rule> getListOfRules(){
@@ -85,8 +152,14 @@ public class DiscountRuleEngineTest {
         rule3.setAction("output.setRegistrationDiscountRage(5)");
         rule3.setDescription("registration based discount");
 
+        Rule rule4 = new Rule();
+        rule4.setRuleName("five_dollar_discount");
+        rule4.setCondition("input.totalBillAmount >= 100" );
+        rule4.setAction("output.setFiveDollarApplicable(true)");
+        rule4.setDescription("five dollar based discount");
 
-        return Lists.newArrayList(rule1, rule2, rule3);
+
+        return Lists.newArrayList(rule1, rule2, rule3, rule4);
     }
 
 }

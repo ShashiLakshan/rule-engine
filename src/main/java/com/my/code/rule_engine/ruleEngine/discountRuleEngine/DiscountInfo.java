@@ -8,8 +8,9 @@ public class DiscountInfo {
     private BigDecimal empDiscountRate;
     private BigDecimal affiliateDiscountRate;
     private BigDecimal registrationDiscountRage;
-    private BigDecimal fiveDollarDiscount;
+    private boolean isFiveDollarApplicable;
     private BigDecimal netBillAmount;
+    private BigDecimal maxDiscountRate;
 
     public BigDecimal getEmpDiscountRate() {
         return empDiscountRate;
@@ -35,12 +36,12 @@ public class DiscountInfo {
         this.registrationDiscountRage = registrationDiscountRage;
     }
 
-    public BigDecimal getFiveDollarDiscount() {
-        return fiveDollarDiscount;
+    public boolean getFiveDollarApplicable() {
+        return isFiveDollarApplicable;
     }
 
-    public void setFiveDollarDiscount(BigDecimal fiveDollarDiscount) {
-        this.fiveDollarDiscount = fiveDollarDiscount;
+    public void setFiveDollarApplicable(boolean fiveDollarApplicable) {
+        this.isFiveDollarApplicable = fiveDollarApplicable;
     }
 
     public BigDecimal getNetBillAmount() {
@@ -51,7 +52,7 @@ public class DiscountInfo {
         this.netBillAmount = netBillAmount;
     }
 
-    public BigDecimal getMaxDiscountRate() {
+    public BigDecimal calculateMaxRate() {
         List<BigDecimal> discountRates = Arrays.asList(empDiscountRate, affiliateDiscountRate, registrationDiscountRage);
         return discountRates.stream()
                 .filter(rate -> rate != null)
